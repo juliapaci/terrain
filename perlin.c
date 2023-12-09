@@ -54,7 +54,7 @@ perlin_Vector2 gradient_hash(int x, int y) {
     float random = a * (3.14159265 / ~(~0u >> 1));
     perlin_Vector2 v = {
          cos(random),
-         sin(random)
+         cos(random)
     };
     return v;
 }
