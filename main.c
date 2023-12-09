@@ -15,8 +15,6 @@ unsigned char *get_perlin() {
         return NULL;
     for(int x = 0; x < WIDTH; x++) {
         for(int y = 0; y < HEIGHT; y++) {
-            int index = (y * WIDTH + x) * 4;
-
             float val = 0;
             float freq = 1;
             float amp = 1;
@@ -35,10 +33,7 @@ unsigned char *get_perlin() {
                 val = -1;
 
             int colour = ((val + 1) * 0.5) * 255;
-            perlin_data[index] = colour;        // R
-            perlin_data[index + 1] = colour;    // G
-            perlin_data[index + 2] = colour;    // B
-            perlin_data[index + 3] = (unsigned char) 256; // A
+            perlin_data[y * WIDTH + x] = colour;
         }
     }
 
@@ -52,7 +47,6 @@ int main(void) {
         if(perlin_data == NULL)
             CloseWindow();
 
-        // Image perlin_noise_img = LoadImageFromMemory(PIXELFORMAT_UNCOMPRESSED_R8G8B8, perlin_data, WIDTH*HEIGHT*4);
         Image perlin_noise_img = {
             perlin_data,
             WIDTH,
@@ -60,7 +54,6 @@ int main(void) {
             PIXELFORMAT_UNCOMPRESSED_GRAYSCALE,
             1
         };
-        printf("%d", perlin_data[011]);
         Texture2D perlin_noise = LoadTextureFromImage(perlin_noise_img);
 
         while (!WindowShouldClose()) {
