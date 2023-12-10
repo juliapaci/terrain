@@ -4,13 +4,13 @@
 
 #include "perlin.h"
 
-#define DATA_SIZE 100
-#define OCTAVE_AMOUNT 12
+#define DATA_SIZE 500
+#define OCTAVE_AMOUNT 1
 #define WIDTH 1920
-#define HEIGHT 1080
+#define HEIGHT 1080/4
 
 unsigned char *get_perlin() {
-    unsigned char *perlin_data = malloc(WIDTH*HEIGHT*4);
+    unsigned char *perlin_data = malloc(WIDTH*HEIGHT);
     if(!perlin_data)
         return NULL;
     for(int x = 0; x < WIDTH; x++) {
@@ -44,8 +44,10 @@ int main(void) {
         SetConfigFlags(FLAG_WINDOW_RESIZABLE);
         InitWindow(0, 0, "Terrain");
         unsigned char *perlin_data = get_perlin();
-        if(perlin_data == NULL)
+        if(perlin_data == NULL) {
             CloseWindow();
+            return 1;
+        }
 
         Image perlin_noise_img = {
             perlin_data,
