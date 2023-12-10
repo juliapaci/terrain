@@ -1,14 +1,19 @@
 #include <stdlib.h>
 #include <stdio.h>
+
 #include <raylib.h>
+#define RAYGUI_IMPLEMENTATION
+#include <raygui.h>
 
 #include "perlin.h"
 
 #define DATA_SIZE 500
 #define OCTAVE_AMOUNT 1
 #define WIDTH 1920
-#define HEIGHT 1080/4
+#define HEIGHT 1080
 
+
+// TODO: use hw accel with gpu for perlin stuff
 unsigned char *get_perlin() {
     unsigned char *perlin_data = malloc(WIDTH*HEIGHT);
     if(!perlin_data)
@@ -40,34 +45,93 @@ unsigned char *get_perlin() {
     return perlin_data;
 }
 
+bool **generate_map(unsigned char *perlin) {
+    bool **map = (bool **)malloc(sizeof(bool *) * WIDTH*HEIGHT);
+
+    for(int x = 0; x < WIDTH; x++) {
+        map[x] = malloc(HEIGHT);
+        for(int y = 0; y < HEIGHT; y++) {
+            if(perlin[(WIDTH*y + x) + (GetMouseY()*WIDTH + GetMouseX())] < 255/2) {
+                map[x][y] = 0;
+                continue;
+            }
+
+            map[x][y] = 1;
+        }
+    }
+
+    return map;
+ }
+
+void draw_map(bool **map) {
+    for(int x = 0; x < WIDTH; x++) {
+        for(int y = 0; y < HEIGHT; y++) {
+            if(!map[x][y])
+                continue;
+
+            DrawRectangleRec(
+                (Rectangle) {
+                    x,
+                    y,
+                    1,
+                    1
+                },
+                (Color) {
+                    64,
+                    64,
+                    64,
+                    255
+                }
+            );
+        }
+    }
+}
+
 int main(void) {
-        SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-        InitWindow(0, 0, "Terrain");
-        unsigned char *perlin_data = get_perlin();
-        if(perlin_data == NULL) {
-            CloseWindow();
-            return 1;
-        }
+    unsigned char *perlin_data = get_perlin();
+    if(perlin_data == NULL)
+        return 1;
+    bool **map_data = generate_map(perlin_data);
+    if(map_data == NULL)
+        return 1;
 
-        Image perlin_noise_img = {
-            perlin_data,
-            WIDTH,
-            HEIGHT,
-            PIXELFORMAT_UNCOMPRESSED_GRAYSCALE,
-            1
-        };
-        Texture2D perlin_noise = LoadTextureFromImage(perlin_noise_img);
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    SetConfigFlags(FLAG_VSYNC_HINT); // just for me
+    InitWindow(0, 0, "Terrain");
 
-        while (!WindowShouldClose()) {
-            BeginDrawing();
-            ClearBackground(RAYWHITE);
+    Image perlin_noise_img = {
+        perlin_data,
+        WIDTH,
+        HEIGHT,
+        PIXELFORMAT_UNCOMPRESSED_GRAYSCALE,
+        1
+    };
+    Texture2D perlin_noise = LoadTextureFromImage(perlin_noise_img);
+
+    bool show_perlin = false;
+    bool show_map = false;
+    while (!WindowShouldClose()) {
+        BeginDrawing();
+        ClearBackground(RAYWHITE);
+
+        if(show_map)
+            draw_map(map_data);
+        if(show_perlin)
             DrawTexture(perlin_noise, 0, 0, WHITE);
-            EndDrawing();
-        }
 
-        UnloadTexture(perlin_noise);
-        CloseWindow();
-        free(perlin_data);
+        if(GuiButton((Rectangle) {10, 50, 200, 20}, "draw map from noise"))
+            show_map = !show_map;
+        if(GuiButton((Rectangle) {10, 10, 200, 20}, "draw perlin noise as texture"))
+            show_perlin = !show_perlin;
 
-        return 0;
+        EndDrawing();
+    }
+
+
+    UnloadTexture(perlin_noise);
+    CloseWindow();
+    free(perlin_data);
+    free(map_data);
+
+    return 0;
 }
