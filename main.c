@@ -1,61 +1,22 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include <raylib.h>
 #define RAYGUI_IMPLEMENTATION
 #include <raygui.h>
+#include <raylib.h>
 
 #include "perlin.h"
-
-#define DATA_SIZE 500
-#define OCTAVE_AMOUNT 12
-#define WIDTH 1920
-#define HEIGHT 1080
+#include "physics.h"
 
 #define THRESHOLD 255/2
 
-
-// TODO: use hw accel with gpu for perlin stuff
-unsigned char *get_perlin() {
-    unsigned char *perlin_data = malloc(WIDTH*HEIGHT);
-    if(!perlin_data)
-        return NULL;
-    for(int x = 0; x < WIDTH; x++) {
-        for(int y = 0; y < HEIGHT; y++) {
-            float val = 0;
-            float freq = 1;
-            float amp = 1;
-
-            for(int i = 0; i < OCTAVE_AMOUNT; i++) {
-                val += perlin(x * freq / DATA_SIZE, y * freq / DATA_SIZE) * amp;
-                freq *= 2;
-                amp /= 2;
-            }
-
-            val *= 1.2;
-
-            if(val > 1)
-                val = 1;
-            else if(val < -1)
-                val = -1;
-
-            int colour = ((val + 1) * 0.5) * 255;
-            perlin_data[y * WIDTH + x] = colour;
-        }
-    }
-
-    return perlin_data;
-}
-
-// TODO: better way than a param for different types of maps
-bool **generate_map(unsigned char *perlin, const bool edge) {
+bool **generate_map(unsigned char *perlin) {
     bool **map = malloc(sizeof(bool *) * WIDTH*HEIGHT);
 
     for(int x = 0; x < WIDTH; x++) {
         map[x] = malloc(HEIGHT);
         for(int y = 0; y < HEIGHT; y++) {
-            if((!edge && perlin[(WIDTH*y + x) + (GetMouseY()*WIDTH + GetMouseX())] >= THRESHOLD)
-                    || (edge && perlin[(WIDTH*y + x) + (GetMouseY()*WIDTH + GetMouseX())] == THRESHOLD)) { // this edge optimisation only works because of specific interpolation (although most (prob all but none) will work)
+            if(perlin[(WIDTH*y + x) + (GetMouseY()*WIDTH + GetMouseX())] >= THRESHOLD) {
                 map[x][y] = 0;
                 continue;
             }
@@ -95,20 +56,27 @@ bool **edge_filter(bool **map) {
     return edge_map;
 }
 
+void add_circle(Array *objects) {
+    array_push(objects, (phys_Object) {
+            (phys_Vector) {1,1,1},
+            5,
+            GetMouseX(),
+            GetMouseY()
+        });
+}
 
 int main(void) {
+
+    // precompute data
     unsigned char *perlin_data = get_perlin();
     if(perlin_data == NULL)
         return 1;
-    bool **map_data = generate_map(perlin_data, false);
+    bool **map_data = generate_map(perlin_data);
     if(map_data == NULL)
         return 1;
-    bool **map_edge_data_approx = generate_map(perlin_data, true);
-    if(map_edge_data_approx == NULL)
-        return 1;
-    // bool **map_edge_data = edge_filter(map_edge_data_approx);
     bool **map_edge_data = edge_filter(map_data);
-    free(map_edge_data_approx);
+    if(map_edge_data == NULL)
+        return 1;
 
     unsigned char edge_arr[WIDTH*HEIGHT] = {0};
     for(int x = 0; x < WIDTH; x++)
@@ -125,6 +93,7 @@ int main(void) {
     SetConfigFlags(FLAG_VSYNC_HINT); // just for me
     InitWindow(0, 0, "Terrain");
 
+    // generate textures from precomputed data
     Image perlin_noise_img = {
         perlin_data,
         WIDTH,
@@ -153,6 +122,10 @@ int main(void) {
     };
     Texture2D edge_map = LoadTextureFromImage(edge_map_img);
 
+    // keep track of physics objects
+    Array objects;
+    array_init(&objects);
+
     bool show_perlin = false;
     bool show_map = false;
     bool show_edge = false;
@@ -174,8 +147,9 @@ int main(void) {
         if(GuiButton((Rectangle) {10, 90, 200, 20}, "draw edge data"))
             show_edge = !show_edge;
 
-        // if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-            // light();
+        if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
+            add_circle(&objects);
+        draw_objects(&objects);
 
         EndDrawing();
     }

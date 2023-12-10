@@ -6,6 +6,12 @@ typedef struct {
     float j;
 } perlin_Vector2;
 
+#define DATA_SIZE 500
+#define OCTAVE_AMOUNT 3
+#define WIDTH 1920
+#define HEIGHT 1080
+
+unsigned char *get_perlin();                                // sample perlin noise into an array (freed by caller)
 float perlin(float x, float y);                             // sample noise
 float dot_off_grad(int x, int y, float px, float py);       // computes the dot of the distance ('offset') and gradient vector
 perlin_Vector2 gradient_hash(int x, int y);                 // compute random gradient vector

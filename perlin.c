@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <math.h>
+#include <stdlib.h>
 
 #include "perlin.h"
 
@@ -61,4 +62,36 @@ perlin_Vector2 gradient_hash(int x, int y) {
 
 float interpolate(float a, float b, float w) {
     return (b - a) * ((w * (w * 6.0 - 15.0) + 10.0) * w * w * w) + a;
+}
+
+// TODO: use hw accel with gpu for perlin stuff
+unsigned char *get_perlin() {
+    unsigned char *perlin_data = malloc(WIDTH*HEIGHT);
+    if(!perlin_data)
+        return NULL;
+    for(int x = 0; x < WIDTH; x++) {
+        for(int y = 0; y < HEIGHT; y++) {
+            float val = 0;
+            float freq = 1;
+            float amp = 1;
+
+            for(int i = 0; i < OCTAVE_AMOUNT; i++) {
+                val += perlin(x * freq / DATA_SIZE, y * freq / DATA_SIZE) * amp;
+                freq *= 2;
+                amp /= 2;
+            }
+
+            val *= 1.2;
+
+            if(val > 1)
+                val = 1;
+            else if(val < -1)
+                val = -1;
+
+            int colour = ((val + 1) * 0.5) * 255;
+            perlin_data[y * WIDTH + x] = colour;
+        }
+    }
+
+    return perlin_data;
 }
