@@ -16,6 +16,12 @@ void draw_objects(Array *objs) {
     }
 }
 
+void apply_physics(Array *objs) {
+    for(size_t i = 0; i < objs->used; i++) {
+        objs->list[i].x += GRAVITY;
+    }
+}
+
 // dynamic array
 void array_init(Array *arr) {
     arr->list = malloc(ARR_SIZE * sizeof(phys_Object));
