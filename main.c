@@ -46,12 +46,12 @@ unsigned char *get_perlin() {
 }
 
 bool **generate_map(unsigned char *perlin) {
-    bool **map = (bool **)malloc(sizeof(bool *) * WIDTH*HEIGHT);
+    bool **map = malloc(sizeof(bool *) * WIDTH*HEIGHT);
 
     for(int x = 0; x < WIDTH; x++) {
         map[x] = malloc(HEIGHT);
         for(int y = 0; y < HEIGHT; y++) {
-            if(perlin[(WIDTH*y + x) + (GetMouseY()*WIDTH + GetMouseX())] < 255/2) {
+            if(perlin[(WIDTH*y + x) + (GetMouseY()*WIDTH + GetMouseX())] > 255/2) {
                 map[x][y] = 0;
                 continue;
             }
@@ -62,30 +62,6 @@ bool **generate_map(unsigned char *perlin) {
 
     return map;
  }
-
-void draw_map(bool **map) {
-    for(int x = 0; x < WIDTH; x++) {
-        for(int y = 0; y < HEIGHT; y++) {
-            if(!map[x][y])
-                continue;
-
-            DrawRectangleRec(
-                (Rectangle) {
-                    x,
-                    y,
-                    1,
-                    1
-                },
-                (Color) {
-                    64,
-                    64,
-                    64,
-                    255
-                }
-            );
-        }
-    }
-}
 
 int main(void) {
     unsigned char *perlin_data = get_perlin();
@@ -108,6 +84,20 @@ int main(void) {
     };
     Texture2D perlin_noise = LoadTextureFromImage(perlin_noise_img);
 
+    unsigned char map_gray[WIDTH*HEIGHT] = {0};
+    for(int x = 0; x < WIDTH; x++)
+        for(int y = 0; y < HEIGHT; y++)
+            map_gray[y*WIDTH + x] = !map_data[x][y] * 200;
+
+    Image map_img = {
+        map_gray,
+        WIDTH,
+        HEIGHT,
+        PIXELFORMAT_UNCOMPRESSED_GRAYSCALE,
+        1,
+    };
+    Texture2D map = LoadTextureFromImage(map_img);
+
     bool show_perlin = false;
     bool show_map = false;
     while (!WindowShouldClose()) {
@@ -115,7 +105,7 @@ int main(void) {
         ClearBackground(RAYWHITE);
 
         if(show_map)
-            draw_map(map_data);
+            DrawTexture(map, 0, 0, WHITE);
         if(show_perlin)
             DrawTexture(perlin_noise, 0, 0, WHITE);
 
