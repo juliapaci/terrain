@@ -51,22 +51,45 @@ bool **edge_filter(bool **map) {
     edge_map[0] = malloc(HEIGHT);
     edge_map[0][0] = map[0][0];
     edge_map[WIDTH-1] = malloc(HEIGHT);
-    edge_map[WIDTH-1][HEIGHT-1] = edge_map[WIDTH-1][HEIGHT-1];
+    edge_map[WIDTH-1][HEIGHT-1] = map[WIDTH-1][HEIGHT-1];
 
     return edge_map;
 }
 
-void add_circle(Array *objects) {
-    array_push(objects, (phys_Object) {
-            (phys_Vector) {1,1,1},
-            5,
-            GetMouseX(),
-            GetMouseY()
-        });
+// TODO: make better wat to save initital mouse coordinates when dragging
+bool first = true;
+int original_x = 0;
+int original_y = 0;
+void add_circle(Array *objects, int radius) {
+    if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+        if(first) {
+            original_x = GetMouseX();
+            original_y = GetMouseY();
+            first = false;
+        }
+        DrawLine(original_x, original_y, GetMouseX(), GetMouseY(), GRAY);
+    } else if(!first && IsMouseButtonReleased(MOUSE_BUTTON_RIGHT)){
+        const int i = GetMouseX() - original_x;
+        const int j = GetMouseY() - original_y;
+        int mag = sqrt(i*i + j*j);
+        if(mag == 0)
+            mag = 1;
+        array_push(objects, (phys_Object) {
+                (phys_Vector) {
+                    i,
+                    j,
+                    mag
+                },
+                radius/5,
+                radius,
+                original_x,
+                original_y
+            });
+        first = true;
+    }
 }
 
 int main(void) {
-
     // precompute data
     unsigned char *perlin_data = get_perlin();
     if(perlin_data == NULL)
@@ -126,6 +149,9 @@ int main(void) {
     Array objects;
     array_init(&objects);
 
+    // physics object radius
+    int radius = 10;
+
     bool show_perlin = false;
     bool show_map = false;
     bool show_edge = false;
@@ -147,9 +173,15 @@ int main(void) {
         if(GuiButton((Rectangle) {10, 90, 200, 20}, "draw edge data"))
             show_edge = !show_edge;
 
-        if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT))
-            add_circle(&objects);
+        radius += GetMouseWheelMove()*2;
+        if(radius < 5)
+            radius = 5;
+        else if(radius > 50)
+            radius = 50;
+
+        add_circle(&objects, radius);
         draw_objects(&objects);
+        apply_physics(&objects);
 
         EndDrawing();
     }

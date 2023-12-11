@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <raylib.h>
+#include <math.h>
 
 // physics stuff
 void draw_objects(Array *objs) {
@@ -16,9 +17,24 @@ void draw_objects(Array *objs) {
     }
 }
 
+// TODO: proper physics
 void apply_physics(Array *objs) {
+    const int padding = 10;
     for(size_t i = 0; i < objs->used; i++) {
-        objs->list[i].x += GRAVITY;
+        phys_Object *obj = &objs->list[i];
+
+        // if(obj->y > GetScreenHeight() + padding) // TODO: remove obj
+        //     obj->y = -padding;
+
+        obj->vec.j += GRAVITY;
+        obj->vec.i -= FRICTION;
+
+        // cap velocity
+        if(obj->vec.mag > TERM_VELO)
+            obj->vec.mag = TERM_VELO;
+
+        obj->x += (obj->vec.i*obj->vec.mag)/256 * FRICTION * 1/obj->mass;
+        obj->y += (obj->vec.j*obj->vec.mag)/256 * FRICTION * 1/obj->mass;
     }
 }
 

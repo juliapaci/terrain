@@ -4,8 +4,9 @@
 #include <stddef.h>
 
 #define ARR_SIZE 10
-#define TERM_VELO 100
-#define GRAVITY 0.981
+#define TERM_VELO 5
+#define GRAVITY 9.81
+#define FRICTION 0.9
 
 typedef struct {
     int i;
@@ -15,12 +16,13 @@ typedef struct {
 
 typedef struct {
     phys_Vector vec;
+    int mass;
     int radius;
     int x;
     int y;
 } phys_Object;
 
-// dynamic array
+// dynamic array TODO: linked list instead
 typedef struct {
     size_t size;
     size_t used;
