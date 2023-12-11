@@ -5,65 +5,102 @@
 #include <math.h>
 
 // physics stuff
-void draw_objects(Array *objs) {
-    for(size_t i = 0; i < objs->used; i++) {
-        const phys_Object obj = objs->list[i];
+void draw_objects(List *objs) {
+    Node *obj = objs->head;
+    while(obj != NULL) {
         DrawCircle(
-                obj.x,
-                obj.y,
-                obj.radius,
+                obj->value.x,
+                obj->value.y,
+                obj->value.radius,
                 RED
             );
+        obj = obj->next;
     }
 }
 
 // TODO: proper physics
-void apply_physics(Array *objs) {
-    const int padding = 10;
-    for(size_t i = 0; i < objs->used; i++) {
-        phys_Object *obj = &objs->list[i];
+void apply_physics(List *objs) {
+    const int padding = -10;
+    Node *obj = objs->head;
+    while(list_size(objs) > LIST_CAP)
+        list_dequeue(objs);
+    while(obj != NULL) {
+        phys_Object *val = &obj->value;
+        if(obj->value.y > GetScreenHeight() + padding) {
+            Node *tmp = obj->next;
+            list_delete(objs, obj);
+            obj = tmp;
+            continue;
+        }
 
-        // if(obj->y > GetScreenHeight() + padding) // TODO: remove obj
-        //     obj->y = -padding;
-
-        obj->vec.j += GRAVITY;
-        obj->vec.i -= FRICTION;
+        val->vec.j += GRAVITY;
+        val->vec.i -= FRICTION;
 
         // cap velocity
-        if(obj->vec.mag > TERM_VELO)
-            obj->vec.mag = TERM_VELO;
+        if(val->vec.mag > TERM_VELO)
+            val->vec.mag = TERM_VELO;
 
-        obj->x += (obj->vec.i*obj->vec.mag)/256 * FRICTION * 1/obj->mass;
-        obj->y += (obj->vec.j*obj->vec.mag)/256 * FRICTION * 1/obj->mass;
+        val->x += (val->vec.i*val->vec.mag)/256 * FRICTION * 1/val->mass;
+        val->y += (val->vec.j*val->vec.mag)/256 * FRICTION * 1/val->mass;
+        obj = obj->next;
     }
 }
 
-// dynamic array
-void array_init(Array *arr) {
-    arr->list = malloc(ARR_SIZE * sizeof(phys_Object));
-    arr->size = ARR_SIZE;
-    arr-> used = 0;
-}
+// list
+void list_enqueue(List *list, phys_Object obj) {
+    Node *node = malloc(sizeof(Node));
+    node->prev = NULL;
+    node->value = obj;
+    node->next = NULL;
 
-void array_push(Array *arr, phys_Object obj) {
-    if(arr->used == arr->size) {
-        arr->size *= 2;
-        arr->list = realloc(arr->list, arr->size * sizeof(phys_Object));
+    if(list->head == NULL || list->tail == NULL) {
+        list->head = node;
+        list->tail = node;
+        return;
     }
 
-    arr->list[arr->used++] = obj;
+    list->tail->next = node;
+    node->prev = list->tail;
+    list->tail = node;
 }
 
-void array_clear(Array *arr) {
-    free(arr->list); // should i do this?
-    arr->list = malloc(ARR_SIZE * sizeof(phys_Object));
-    arr->used = 0;
-    arr->size = ARR_SIZE;
+void list_dequeue(List *list) {
+    if(list->head == NULL || list->tail == NULL)
+        return;
+    Node *tmp = list->head;
+    list->head = list->head->next;
+    free(tmp);
 }
 
-void array_free(Array *arr) {
-    free(arr->list);
-    arr->list = NULL;
-    arr->used = 0;
-    arr->size = 0;
+void list_delete(List *list, Node *target) {
+    if(target == NULL)
+        return;
+    if(target->prev != NULL)
+        target->prev->next = target->next;
+    if(target->next != NULL)
+        target->next->prev = target->prev;
+    else
+        list->head = target->next;
+    free(target);
+}
+
+// TODO: maybe there is a mem leak here
+void list_free(List *list) {
+    Node *node = list->head;
+    while(node != NULL) {
+        Node *tmp = node;
+        node = node->next;
+        free(tmp);
+        tmp = NULL;
+    }
+    list->head = NULL;
+    list->tail = NULL;
+}
+
+size_t list_size(List *list) {
+    int size;
+    Node *node = list->head;
+    for(size = 0; node != NULL; size++)
+        node = node->next;
+    return size;
 }

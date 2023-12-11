@@ -3,8 +3,8 @@
 
 #include <stddef.h>
 
-#define ARR_SIZE 10
-#define TERM_VELO 5
+#define LIST_CAP 10
+#define TERM_VELO 10
 #define GRAVITY 9.81
 #define FRICTION 0.9
 
@@ -22,21 +22,28 @@ typedef struct {
     int y;
 } phys_Object;
 
-// dynamic array TODO: linked list instead
-typedef struct {
-    size_t size;
-    size_t used;
-    phys_Object *list;
-} Array;
+// list
+typedef struct Node {
+    struct Node *prev; // only needs to be doubly linked for deletion
+    phys_Object value;
+    struct Node *next;
+} Node;
 
-void array_init(Array *arr);
-void array_push(Array *arr, phys_Object obj);
-void array_clear(Array *arr);
-void array_free(Array *arr);
+typedef struct {
+    Node *head;
+    Node *tail;
+} List;
+
+void list_enqueue(List *list, phys_Object obj);
+void list_dequeue(List *list);
+void list_delete(List *list, Node *target);
+// void list_delete(Node **head_ref, Node *del);
+void list_free(List *list);
+size_t list_size(List *list);
 
 // physics stuff
-void draw_objects(Array *objs);
-void apply_physics(Array *objs);
+void draw_objects(List *objs);
+void apply_physics(List *objs);
 
 
 #endif // __PHYSICS_H__

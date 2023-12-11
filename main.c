@@ -60,7 +60,7 @@ bool **edge_filter(bool **map) {
 bool first = true;
 int original_x = 0;
 int original_y = 0;
-void add_circle(Array *objects, int radius) {
+void add_circle(List *objects, int radius) {
     if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
         if(first) {
             original_x = GetMouseX();
@@ -74,7 +74,7 @@ void add_circle(Array *objects, int radius) {
         int mag = sqrt(i*i + j*j);
         if(mag == 0)
             mag = 1;
-        array_push(objects, (phys_Object) {
+        list_enqueue(objects, (phys_Object) {
                 (phys_Vector) {
                     i,
                     j,
@@ -146,8 +146,7 @@ int main(void) {
     Texture2D edge_map = LoadTextureFromImage(edge_map_img);
 
     // keep track of physics objects
-    Array objects;
-    array_init(&objects);
+    List objects;
 
     // physics object radius
     int radius = 10;
@@ -183,6 +182,10 @@ int main(void) {
         draw_objects(&objects);
         apply_physics(&objects);
 
+        // debug stuff
+        int size = list_size(&objects);
+        DrawText(TextFormat("size: %d", size), 500, 500, 100, BLUE);
+
         EndDrawing();
     }
 
@@ -190,6 +193,6 @@ int main(void) {
     UnloadTexture(perlin_noise);
     CloseWindow();
     free(map_edge_data);
-
+    list_free(&objects);
     return 0;
 }
