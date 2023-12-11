@@ -75,12 +75,12 @@ void list_dequeue(List *list) {
 void list_delete(List *list, Node *target) {
     if(target == NULL)
         return;
+    if(list->head == target)
+        list->head = target->next;
     if(target->prev != NULL)
         target->prev->next = target->next;
     if(target->next != NULL)
         target->next->prev = target->prev;
-    else
-        list->head = target->next;
     free(target);
 }
 
