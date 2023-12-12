@@ -69,6 +69,7 @@ void add_circle(List *objects, int radius) {
             original_y = GetMouseY();
             first = false;
         }
+
         DrawLine(original_x, original_y, GetMouseX(), GetMouseY(), GRAY);
         DrawCircle(original_x, original_y, radius, GRAY);
     } else if(!first && IsMouseButtonReleased(MOUSE_BUTTON_RIGHT)){
@@ -88,6 +89,10 @@ void add_circle(List *objects, int radius) {
                 original_x,
                 original_y
             });
+
+        if(list_size(objects) > LIST_CAP)
+            list_dequeue(objects);
+
         first = true;
     }
 }
@@ -152,29 +157,31 @@ int main(void) {
     List objects;
 
     // physics object radius
-    int radius = 10;
+    int radius = 8;
 
     // quad tree
-    QuadTreeNode quadtree = { // initial root node
-        NULL,
-        0, 0,
-        WIDTH, HEIGHT,
-        0,
-        0
-    };
+    QuadTreeNode quadtree;
 
+    bool show_menu = true;
     bool show_perlin = false;
     bool show_map = false;
     bool show_edge = false;
     bool show_vec = false;
     bool show_quadtree = false;
+    bool pause = false;
+
+    const int button_width = 200;
+    const int button_height = 20;
     while (!WindowShouldClose()) {
         int sw = GetScreenWidth();
         int sh = GetScreenHeight();
 
+        // maybe pause too?
         init_tree(&quadtree);
         generate_tree(&quadtree, &objects);
-        apply_physics(&objects);
+        if(!pause) {
+            apply_physics(&objects);
+        }
 
         BeginDrawing();
         ClearBackground(RAYWHITE);
@@ -188,16 +195,29 @@ int main(void) {
         if(show_quadtree)
             draw_tree(&quadtree);
 
-        if(GuiButton((Rectangle) {10, 10, 200, 20}, "draw perlin noise"))
-            show_perlin = !show_perlin;
-        if(GuiButton((Rectangle) {10, 50, 200, 20}, "draw map from noise"))
-            show_map = !show_map;
-        if(GuiButton((Rectangle) {10, 90, 200, 20}, "draw edge data"))
-            show_edge = !show_edge;
-        if(GuiButton((Rectangle) {10, 130, 200, 20}, "draw object vectors (unfiltered)"))
-            show_vec = !show_vec;
-        if(GuiButton((Rectangle) {10, 170, 200, 20}, "visualise quadtree"))
-            show_quadtree = !show_quadtree;
+        // menu (buttons & stuff)
+        if(IsKeyPressed(KEY_M))
+            show_menu = !show_menu;
+        if(show_menu) {
+            if(GuiButton((Rectangle) {10, 10, button_width, button_height}, "draw perlin noise"))
+                show_perlin = !show_perlin;
+            if(GuiButton((Rectangle) {10, 50, button_width, button_height}, "draw map from noise"))
+                show_map = !show_map;
+            if(GuiButton((Rectangle) {10, 90, button_width, button_height}, "draw edge data"))
+                show_edge = !show_edge;
+            if(GuiButton((Rectangle) {10, 130, button_width, button_height}, "draw object vectors (unfiltered)"))
+                show_vec = !show_vec;
+            if(GuiButton((Rectangle) {10, 170, button_width, button_height}, "visualise quadtree"))
+                show_quadtree = !show_quadtree;
+            if(GuiButton((Rectangle) {sw-50, 10, 30, 30}, pause ? ">" : "| |") || IsKeyPressed(KEY_SPACE))
+                pause = !pause;
+
+            // debug stuff
+            DrawText(TextFormat("FPS: %d", GetFPS()), sw-250, 10, 30, BLUE);
+            int size = list_size(&objects);
+            DrawText(TextFormat("amount: %d", size), sw-250, 50, 30, BLUE);
+            DrawText(TextFormat("Obj radius: %d", radius), sw-250, 90, 30, BLUE);
+        }
 
         radius += GetMouseWheelMove()*2;
         if(radius < 5)
@@ -207,11 +227,6 @@ int main(void) {
 
         add_circle(&objects, radius);
         draw_objects(&objects, show_vec);
-
-        // debug stuff
-        int size = list_size(&objects);
-        DrawText(TextFormat("amount: %d", size), sw-250, 10, 35, BLUE);
-        DrawText(TextFormat("Obj radius: %d", radius), sw-250, 50, 35, BLUE);
 
         EndDrawing();
     }

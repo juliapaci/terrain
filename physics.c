@@ -16,7 +16,24 @@ void draw_objects(List *objs, bool show_objects) {
                 RED
             );
 
-        if(show_objects)
+        if(show_objects) {
+            // x dir
+            DrawLine(
+                val->x,
+                val->y,
+                val->x + val->vec.i,
+                val->y,
+                GREEN
+            );
+            // y dir
+            DrawLine(
+                val->x,
+                val->y,
+                val->x,
+                val->y + val->vec.j,
+                GREEN
+            );
+            // dir
             DrawLine(
                 val->x,
                 val->y,
@@ -24,6 +41,7 @@ void draw_objects(List *objs, bool show_objects) {
                 val->y + val->vec.j,
                 BLUE
             );
+        }
 
         obj = obj->next;
     }
@@ -33,9 +51,6 @@ void draw_objects(List *objs, bool show_objects) {
 void apply_physics(List *objs) {
     const int padding = 10;
     Node *obj = objs->head;
-
-    while(list_size(objs) > LIST_CAP)
-        list_dequeue(objs);
 
     while(obj != NULL) {
         phys_Object *val = &obj->value;

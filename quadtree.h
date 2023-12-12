@@ -4,8 +4,9 @@
 #include <raylib.h>
 #include "physics.h"
 
+// TODO: fix capactiy only working for value 1
 #define CAPACITY 1 // amount of objects in a quad for a sub division to occur
-#define MAX_DEPTH 100
+#define MAX_DEPTH 10 // max child nodes
 
 typedef struct QuadTreeNode {
     struct QuadTreeNode *children; // represent node quadrants

@@ -68,10 +68,10 @@ void subdivide(QuadTreeNode *node) {
 
 bool contains(QuadTreeNode *node, phys_Object *obj) {
     // TODO: check if radius unit is pixels or else this doesnt work
-    return node->x <= obj->x - obj->radius &&
-        node->x + node->width >= obj->x + obj->radius &&
-        node->y <= obj->y - obj->radius &&
-        node->y + node->height >= obj->y + obj->radius;
+    return node->x < obj->x - obj->radius &&
+        node->x + node->width > obj->x + obj->radius &&
+        node->y < obj->y - obj->radius &&
+        node->y + node->height > obj->y + obj->radius;
 }
 
 
