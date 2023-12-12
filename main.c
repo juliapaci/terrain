@@ -7,6 +7,7 @@
 
 #include "perlin.h"
 #include "physics.h"
+#include "quadtree.h"
 
 #define THRESHOLD 255/2
 
@@ -28,6 +29,7 @@ bool **generate_map(unsigned char *perlin) {
     return map;
 }
 
+// TODO: could prob use a shader for this
 bool **edge_filter(bool **map) {
     bool **edge_map = malloc(sizeof(bool *) * WIDTH*HEIGHT);
 
@@ -68,6 +70,7 @@ void add_circle(List *objects, int radius) {
             first = false;
         }
         DrawLine(original_x, original_y, GetMouseX(), GetMouseY(), GRAY);
+        DrawCircle(original_x, original_y, radius, GRAY);
     } else if(!first && IsMouseButtonReleased(MOUSE_BUTTON_RIGHT)){
         const int i = GetMouseX() - original_x;
         const int j = GetMouseY() - original_y;
@@ -151,10 +154,28 @@ int main(void) {
     // physics object radius
     int radius = 10;
 
+    // quad tree
+    QuadTreeNode quadtree = { // initial root node
+        NULL,
+        0, 0,
+        WIDTH, HEIGHT,
+        0,
+        0
+    };
+
     bool show_perlin = false;
     bool show_map = false;
     bool show_edge = false;
+    bool show_vec = false;
+    bool show_quadtree = false;
     while (!WindowShouldClose()) {
+        int sw = GetScreenWidth();
+        int sh = GetScreenHeight();
+
+        init_tree(&quadtree);
+        generate_tree(&quadtree, &objects);
+        apply_physics(&objects);
+
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
@@ -164,13 +185,19 @@ int main(void) {
             DrawTexture(perlin_noise, 0, 0, WHITE);
         if(show_edge)
             DrawTexture(edge_map, 0, 0, WHITE);
+        if(show_quadtree)
+            draw_tree(&quadtree);
 
-        if(GuiButton((Rectangle) {10, 10, 200, 20}, "draw perlin noise as texture"))
+        if(GuiButton((Rectangle) {10, 10, 200, 20}, "draw perlin noise"))
             show_perlin = !show_perlin;
         if(GuiButton((Rectangle) {10, 50, 200, 20}, "draw map from noise"))
             show_map = !show_map;
         if(GuiButton((Rectangle) {10, 90, 200, 20}, "draw edge data"))
             show_edge = !show_edge;
+        if(GuiButton((Rectangle) {10, 130, 200, 20}, "draw object vectors (unfiltered)"))
+            show_vec = !show_vec;
+        if(GuiButton((Rectangle) {10, 170, 200, 20}, "visualise quadtree"))
+            show_quadtree = !show_quadtree;
 
         radius += GetMouseWheelMove()*2;
         if(radius < 5)
@@ -179,12 +206,12 @@ int main(void) {
             radius = 50;
 
         add_circle(&objects, radius);
-        draw_objects(&objects);
-        apply_physics(&objects);
+        draw_objects(&objects, show_vec);
 
         // debug stuff
         int size = list_size(&objects);
-        DrawText(TextFormat("size: %d", size), 500, 500, 100, BLUE);
+        DrawText(TextFormat("amount: %d", size), sw-250, 10, 35, BLUE);
+        DrawText(TextFormat("Obj radius: %d", radius), sw-250, 50, 35, BLUE);
 
         EndDrawing();
     }

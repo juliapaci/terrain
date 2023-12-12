@@ -64,7 +64,7 @@ float interpolate(float a, float b, float w) {
     return (b - a) * ((w * (w * 6.0 - 15.0) + 10.0) * w * w * w) + a;
 }
 
-// TODO: use hw accel with gpu for perlin stuff
+// TODO: use hw accel with gpu for perlin stuff or even just multithreading so panning wont hult the main thread
 unsigned char *get_perlin() {
     unsigned char *perlin_data = malloc(WIDTH*HEIGHT);
     if(!perlin_data)

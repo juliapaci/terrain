@@ -5,36 +5,49 @@
 #include <math.h>
 
 // physics stuff
-void draw_objects(List *objs) {
+void draw_objects(List *objs, bool show_objects) {
     Node *obj = objs->head;
     while(obj != NULL) {
+        phys_Object *val = &obj->value;
         DrawCircle(
-                obj->value.x,
-                obj->value.y,
-                obj->value.radius,
+                val->x,
+                val->y,
+                val->radius,
                 RED
             );
+
+        if(show_objects)
+            DrawLine(
+                val->x,
+                val->y,
+                val->x + val->vec.i,
+                val->y + val->vec.j,
+                BLUE
+            );
+
         obj = obj->next;
     }
 }
 
 // TODO: proper physics
 void apply_physics(List *objs) {
-    const int padding = -10;
+    const int padding = 10;
     Node *obj = objs->head;
+
     while(list_size(objs) > LIST_CAP)
         list_dequeue(objs);
+
     while(obj != NULL) {
         phys_Object *val = &obj->value;
-        if(obj->value.y > GetScreenHeight() + padding) {
+        if(val->y > GetScreenHeight() - padding*-val->mass) {
             Node *tmp = obj->next;
             list_delete(objs, obj);
             obj = tmp;
             continue;
         }
 
-        val->vec.j += GRAVITY;
-        val->vec.i -= FRICTION;
+        val->vec.j += GRAVITY*val->mass;
+        val->vec.i -= FRICTION*val->mass;
 
         // cap velocity
         if(val->vec.mag > TERM_VELO)
@@ -64,6 +77,7 @@ void list_enqueue(List *list, phys_Object obj) {
     list->tail = node;
 }
 
+// TODO: sometimes crashes here
 void list_dequeue(List *list) {
     if(list->head == NULL || list->tail == NULL)
         return;

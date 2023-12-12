@@ -2,8 +2,9 @@
 #define __PHYSICS_H__
 
 #include <stddef.h>
+#include <raylib.h>
 
-#define LIST_CAP 10
+#define LIST_CAP 20
 #define TERM_VELO 10
 #define GRAVITY 9.81
 #define FRICTION 0.9
@@ -37,12 +38,11 @@ typedef struct {
 void list_enqueue(List *list, phys_Object obj);
 void list_dequeue(List *list);
 void list_delete(List *list, Node *target);
-// void list_delete(Node **head_ref, Node *del);
 void list_free(List *list);
 size_t list_size(List *list);
 
 // physics stuff
-void draw_objects(List *objs);
+void draw_objects(List *objs, bool show_objects);
 void apply_physics(List *objs);
 
 
