@@ -109,7 +109,7 @@ int main(void) {
     if(map_edge_data == NULL)
         return 1;
 
-    unsigned char edge_arr[WIDTH*HEIGHT] = {0};
+    unsigned char edge_arr[WIDTH*HEIGHT];
     for(int x = 0; x < WIDTH; x++)
         for(int y = 0; y < HEIGHT; y++)
             edge_arr[y*WIDTH + x] = !map_edge_data[x][y] * 200;
@@ -176,11 +176,11 @@ int main(void) {
         int sw = GetScreenWidth();
         int sh = GetScreenHeight();
 
-        // maybe pause too?
-        init_tree(&quadtree);
-        generate_tree(&quadtree, &objects);
         if(!pause) {
+            init_tree(&quadtree);
+            generate_tree(&quadtree, &objects);
             apply_physics(&objects);
+            collide_physics(&objects, map_edge_data, show_edge || show_map);
         }
 
         BeginDrawing();

@@ -74,6 +74,57 @@ void apply_physics(List *objs) {
     }
 }
 
+// TODO: use quadtree instead
+void collide_environment(phys_Object *obj, bool **edge) {
+    const int min_x = obj->x - obj->radius;
+    const int max_x = obj->x + obj->radius;
+    const int min_y = obj->y - obj->radius;
+    const int max_y = obj->y + obj->radius;
+
+    if(min_x < 0 || max_x > GetScreenWidth() || min_y < 0 || max_y > GetScreenHeight())
+        return;
+
+    bool hit_vert = false;
+    bool hit_hori = false;
+    for(int x = min_x; x < max_x; x++) {
+        for(int y = min_y; y < max_y; y++) {
+            if(!edge[x][y])
+                continue;
+
+            if(y > min_y || y < max_y)
+                hit_vert = true;
+            if(x > min_x || x < max_x)
+                hit_hori = true;
+        }
+    }
+
+    #define OPP_DIR(D) (obj->vec.D = -(obj->vec.D))
+    #define PAD_MAG (                           \
+            obj->vec.mag -= PADDING;            \
+            obj->vec.mag = abs(obj->vec.mag);   \
+        )
+
+    if(hit_vert) {
+        OPP_DIR(j);
+    }
+    if(hit_hori) {
+        OPP_DIR(i);
+    }
+
+}
+
+void collide_physics(List *objs, bool **edge_data, bool environment) {
+    Node *obj = objs->head;
+
+    while(obj != NULL) {
+        if(environment)
+            collide_environment(&obj->value, edge_data);
+        // collide_objs();
+
+        obj = obj->next;
+    }
+}
+
 // list
 void list_enqueue(List *list, phys_Object obj) {
     Node *node = malloc(sizeof(Node));
