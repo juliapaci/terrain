@@ -8,7 +8,6 @@
 #define TERM_VELO 10
 #define GRAVITY 9.81
 #define FRICTION 0.9
-#define PADDING 1
 
 typedef struct {
     int i;
@@ -43,7 +42,7 @@ void list_free(List *list);
 size_t list_size(List *list);
 
 // physics stuff
-void draw_objects(List *objs, bool show_objects);
+void draw_objects(List *objs, bool show_objects, Camera2D camera);
 void apply_physics(List *objs);
 void collide_physics(List *objs, bool **edge_data, bool environment);
 

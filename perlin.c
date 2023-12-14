@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 #include "perlin.h"
 
@@ -14,21 +15,21 @@ float perlin(float x, float y) {
     float wx = x - x0;
     float wy = y - y0;
 
-    float left = interpolate(
+    float high = interpolate(
             dot_off_grad(x0, y0, x, y),
             dot_off_grad(x1, y0, x, y),
             wx
         );
 
-    float right = interpolate(
+    float low = interpolate(
             dot_off_grad(x0, y1, x, y),
             dot_off_grad(x1, y1, x, y),
             wx
     );
 
     return interpolate(
-            left,
-            right,
+            high,
+            low,
             wy
         );
 }
@@ -64,13 +65,13 @@ float interpolate(float a, float b, float w) {
     return (b - a) * ((w * (w * 6.0 - 15.0) + 10.0) * w * w * w) + a;
 }
 
-// TODO: use hw accel with gpu for perlin stuff or even just multithreading so panning wont hult the main thread
-unsigned char *get_perlin(void) {
+void *get_perlin(void *arguments) {
+    get_perlin_args *args = (get_perlin_args *)arguments;
     unsigned char *perlin_data = malloc(WIDTH*HEIGHT);
     if(!perlin_data)
         return NULL;
-    for(int x = 0; x < WIDTH; x++) {
-        for(int y = 0; y < HEIGHT; y++) {
+    for(int x = args->x; x < WIDTH+args->x; x++) {
+        for(int y = args->y; y < HEIGHT+args->y; y++) {
             float val = 0;
             float freq = 1;
             float amp = 1;
@@ -89,9 +90,11 @@ unsigned char *get_perlin(void) {
                 val = -1;
 
             int colour = ((val + 1) * 0.5) * 255;
-            perlin_data[y * WIDTH + x] = colour;
+            perlin_data[(y-(int)args->y) * WIDTH + (x-(int)args->x)] = colour;
         }
     }
 
-    return perlin_data;
+    // TODO: use pthread exit or simply return?
+    pthread_exit(perlin_data);
+    // return perlin_data;
 }

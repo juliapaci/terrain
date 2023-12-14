@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <pthread.h>
 
 #define RAYGUI_IMPLEMENTATION
 #include <raygui.h>
@@ -17,12 +18,7 @@ bool **generate_map(unsigned char *perlin) {
     for(int x = 0; x < WIDTH; x++) {
         map[x] = malloc(HEIGHT);
         for(int y = 0; y < HEIGHT; y++) {
-            if(perlin[(WIDTH*y + x) + (GetMouseY()*WIDTH + GetMouseX())] >= THRESHOLD) {
-                map[x][y] = 0;
-                continue;
-            }
-
-            map[x][y] = 1;
+            map[x][y] = perlin[(WIDTH*y + x)] >= THRESHOLD;
         }
     }
 
@@ -58,23 +54,33 @@ bool **edge_filter(bool **map) {
     return edge_map;
 }
 
+// TODO: fix segfault
+void free_map(bool ***data) {
+    for(int i = 0; i < WIDTH; i++) {
+        free(*data[i]);
+    }
+    free(*data);
+}
+
 // TODO: make better wat to save initital mouse coordinates when dragging
-bool first = true;
-int original_x = 0;
-int original_y = 0;
-void add_circle(List *objects, int radius) {
+bool add_first= true;
+int add_original_x = 0;
+int add_original_y = 0;
+void add_circle(List *objects, int radius, Camera2D camera) {
     if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
-        if(first) {
-            original_x = GetMouseX();
-            original_y = GetMouseY();
-            first = false;
+        if(add_first) {
+            add_original_x = GetMouseX();
+            add_original_y = GetMouseY();
+            add_first = false;
         }
 
-        DrawLine(original_x, original_y, GetMouseX(), GetMouseY(), GRAY);
-        DrawCircle(original_x, original_y, radius, GRAY);
-    } else if(!first && IsMouseButtonReleased(MOUSE_BUTTON_RIGHT)){
-        const int i = GetMouseX() - original_x;
-        const int j = GetMouseY() - original_y;
+        BeginMode2D(camera);
+        DrawLine(add_original_x, add_original_y, GetMouseX(), GetMouseY(), GRAY);
+        DrawCircle(add_original_x, add_original_y, radius, GRAY);
+        EndMode2D();
+    } else if(IsMouseButtonReleased(MOUSE_BUTTON_RIGHT)){
+        const int i = GetMouseX() - add_original_x;
+        const int j = GetMouseY() - add_original_y;
         int mag = sqrt(i*i + j*j);
         if(mag == 0)
             mag = 1;
@@ -86,20 +92,49 @@ void add_circle(List *objects, int radius) {
                 },
                 radius/5,
                 radius,
-                original_x,
-                original_y
+                add_original_x,
+                add_original_y
             });
 
         if(list_size(objects) > LIST_CAP)
             list_dequeue(objects);
 
-        first = true;
+        add_first = true;
+    }
+}
+
+bool sel_first = true;
+int sel_original_x = 0;
+int sel_original_y = 0;
+void select_objects(List *objects, Camera2D camera) {
+    if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        if(sel_first) {
+            sel_original_x = GetMouseX();
+            sel_original_y = GetMouseY();
+            sel_first = false;
+        }
+
+        BeginMode2D(camera);
+        // TODO: better way of drawing this rectangle;
+        DrawLine(sel_original_x, sel_original_y, sel_original_x, GetMouseY(), GRAY);
+        DrawLine(sel_original_x, sel_original_y, GetMouseX(), sel_original_y, GRAY);
+        DrawLine(GetMouseX(), sel_original_y, GetMouseX(), GetMouseY(), GRAY);
+        DrawLine(sel_original_x, GetMouseY(), GetMouseX(), GetMouseY(), GRAY);
+        EndMode2D();
+    } else if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        sel_first = true;
     }
 }
 
 int main(void) {
+    pthread_t perlin_thread;
+
     // precompute data
-    unsigned char *perlin_data = get_perlin();
+    unsigned char *perlin_data;
+    if(pthread_create(&perlin_thread, NULL, get_perlin, &(get_perlin_args) {10, 0}))
+        return 1;
+    if(pthread_join(perlin_thread, &perlin_data))
+        return 1;
     if(perlin_data == NULL)
         return 1;
     bool **map_data = generate_map(perlin_data);
@@ -118,7 +153,6 @@ int main(void) {
     for(int x = 0; x < WIDTH; x++)
         for(int y = 0; y < HEIGHT; y++)
             map_gray[y*WIDTH + x] = !map_data[x][y] * 200;
-    free(map_data);
 
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     SetConfigFlags(FLAG_VSYNC_HINT); // just for me
@@ -159,9 +193,24 @@ int main(void) {
     // physics object radius
     int radius = 8;
 
-    // quad tree
+    // root quad tree node
     QuadTreeNode quadtree;
 
+    // camera
+    Camera2D camera = {
+        (Vector2) {
+            0,
+            0
+        },
+        (Vector2) {
+            0,
+            0
+        },
+        0.0f,
+        1.0f
+    };
+
+    // menu button toggles
     bool show_menu = true;
     bool show_perlin = false;
     bool show_map = false;
@@ -180,20 +229,93 @@ int main(void) {
             init_tree(&quadtree);
             generate_tree(&quadtree, &objects);
             apply_physics(&objects);
-            collide_physics(&objects, map_edge_data, show_edge || show_map);
+
+            if(show_edge)
+                collide_physics(&objects, map_edge_data, show_edge);
+            else if(show_map)
+                collide_physics(&objects, map_data, show_map);
+        }
+
+        // camera stuff
+        const float old_y = camera.target.y;
+        const float old_x = camera.target.x;
+        const float old_r = camera.rotation;
+        const float old_z = camera.zoom;
+        camera.target.y += 100*(IsKeyDown(KEY_S) - IsKeyDown(KEY_W));
+        camera.target.x += 100*(IsKeyDown(KEY_D) - IsKeyDown(KEY_A));
+        camera.rotation += IsKeyDown(KEY_E) - IsKeyDown(KEY_Q);
+        camera.zoom += !IsMouseButtonDown(MOUSE_BUTTON_RIGHT)*((float)GetMouseWheelMove()*0.05f);
+        if(IsKeyDown(KEY_R)) {
+            camera.rotation = 0;
+            camera.zoom = 1;
+        }
+
+        // regen chunks TODO: fix multithreading to make it work parallel not concurrently
+        if(camera.target.y != old_y || camera.target.x != old_x || camera.rotation != old_r || camera.zoom != old_z) {
+            // regen perlin noise
+            if(pthread_create(&perlin_thread, NULL, get_perlin,
+                    &(get_perlin_args) {
+                            camera.target.x,
+                            camera.target.y
+                        }
+                    ))
+                return 1;
+            if(pthread_join(perlin_thread, &perlin_data))
+                    return 1;
+            if(perlin_data == NULL)
+                return 1;
+            UnloadTexture(perlin_noise);
+            perlin_noise_img.data = perlin_data;
+            perlin_noise = LoadTextureFromImage(perlin_noise_img);
+
+            // regen map
+            if(pthread_create(&perlin_thread, NULL, generate_map, perlin_data))
+                return 1;
+            if(pthread_join(perlin_thread, &map_data))
+                return 1;
+            if(map_data == NULL)
+                return 1;
+            unsigned char map_gray[WIDTH*HEIGHT] = {0};
+            for(int x = 0; x < WIDTH; x++)
+                for(int y = 0; y < HEIGHT; y++)
+                    map_gray[y*WIDTH + x] = !map_data[x][y] * 200;
+            UnloadTexture(map);
+            map_img.data = map_gray;
+            map = LoadTextureFromImage(map_img);
+
+
+            // regen edge map
+            if(pthread_create(&perlin_thread, NULL, edge_filter, map_data))
+                return 1;
+            if(pthread_join(perlin_thread, &map_edge_data))
+                return 1;
+            if(map_edge_data == NULL)
+                return 1;
+
+            unsigned char edge_arr[WIDTH*HEIGHT];
+            for(int x = 0; x < WIDTH; x++)
+                for(int y = 0; y < HEIGHT; y++)
+                    edge_arr[y*WIDTH + x] = !map_edge_data[x][y] * 200;
+            edge_map_img.data = edge_arr;
+            edge_map = LoadTextureFromImage(edge_map_img);
+
+            free(perlin_data);
         }
 
         BeginDrawing();
         ClearBackground(RAYWHITE);
+        BeginMode2D(camera);
 
-        if(show_map)
-            DrawTexture(map, 0, 0, WHITE);
-        if(show_perlin)
-            DrawTexture(perlin_noise, 0, 0, WHITE);
         if(show_edge)
             DrawTexture(edge_map, 0, 0, WHITE);
+        else if(show_map)
+            DrawTexture(map, 0, 0, WHITE);
+        else if(show_perlin)
+            DrawTexture(perlin_noise, 0, 0, WHITE);
         if(show_quadtree)
             draw_tree(&quadtree);
+
+        EndMode2D();
 
         // menu (buttons & stuff)
         if(IsKeyPressed(KEY_M))
@@ -207,7 +329,10 @@ int main(void) {
                 show_edge = !show_edge;
             if(GuiButton((Rectangle) {10, 130, button_width, button_height}, "draw object vectors (unfiltered)"))
                 show_vec = !show_vec;
-            if(GuiButton((Rectangle) {10, 170, button_width, button_height}, "visualise quadtree"))
+            if(GuiButton((Rectangle) {10, 170, button_width, button_height}, "clear objects"))
+                while(list_size(&objects) > 0)
+                    list_dequeue(&objects);
+            if(GuiButton((Rectangle) {10, 210, button_width, button_height}, "visualise quadtree"))
                 show_quadtree = !show_quadtree;
             if(GuiButton((Rectangle) {sw-50, 10, 30, 30}, pause ? ">" : "| |") || IsKeyPressed(KEY_SPACE))
                 pause = !pause;
@@ -219,22 +344,31 @@ int main(void) {
             DrawText(TextFormat("Obj radius: %d", radius), sw-250, 90, 30, BLUE);
         }
 
-        radius += GetMouseWheelMove()*2;
-        if(radius < 5)
-            radius = 5;
-        else if(radius > 50)
-            radius = 50;
+        if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+            radius += GetMouseWheelMove()*2;
+            if(radius < 5)
+                radius = 5;
+            else if(radius > 50)
+                radius = 50;
+        }
 
-        add_circle(&objects, radius);
-        draw_objects(&objects, show_vec);
+        add_circle(&objects, radius, camera);
+        draw_objects(&objects, show_vec, camera);
+        select_objects(&objects, camera);
+        if(IsKeyPressed(KEY_BACKSPACE) || IsKeyPressed(KEY_DELETE))
+            list_dequeue(&objects);
 
         EndDrawing();
     }
 
-
+    pthread_exit(&perlin_thread);
     UnloadTexture(perlin_noise);
+    UnloadTexture(edge_map);
+    UnloadTexture(map);
     CloseWindow();
-    free(map_edge_data);
     list_free(&objects);
+    free_map(&map_data);
+    free_map(&map_edge_data);
+
     return 0;
 }

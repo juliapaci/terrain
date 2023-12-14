@@ -21,5 +21,6 @@ void generate_tree(QuadTreeNode *node, List *objs);
 void subdivide(QuadTreeNode *node);
 bool contains(QuadTreeNode *node, phys_Object *obj);
 void draw_tree(QuadTreeNode *node);
+void query_tree(QuadTreeNode *node);
 
 #endif // __QUADTREE_H__

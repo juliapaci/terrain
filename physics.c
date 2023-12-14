@@ -5,10 +5,12 @@
 #include <math.h>
 
 // physics stuff
-void draw_objects(List *objs, bool show_objects) {
+void draw_objects(List *objs, bool show_objects, Camera2D camera) {
     Node *obj = objs->head;
     while(obj != NULL) {
         phys_Object *val = &obj->value;
+
+        BeginMode2D(camera);
         DrawCircle(
                 val->x,
                 val->y,
@@ -42,6 +44,7 @@ void draw_objects(List *objs, bool show_objects) {
                 BLUE
             );
         }
+        EndMode2D();
 
         obj = obj->next;
     }
@@ -74,8 +77,8 @@ void apply_physics(List *objs) {
     }
 }
 
-// TODO: use quadtree instead
-void collide_environment(phys_Object *obj, bool **edge) {
+// TODO: use quadtree for this (see if its slower)
+void collide_environment(phys_Object *obj, bool **map) {
     const int min_x = obj->x - obj->radius;
     const int max_x = obj->x + obj->radius;
     const int min_y = obj->y - obj->radius;
@@ -88,7 +91,7 @@ void collide_environment(phys_Object *obj, bool **edge) {
     bool hit_hori = false;
     for(int x = min_x; x < max_x; x++) {
         for(int y = min_y; y < max_y; y++) {
-            if(!edge[x][y])
+            if(!map[x][y])
                 continue;
 
             if(y > min_y || y < max_y)
@@ -99,26 +102,20 @@ void collide_environment(phys_Object *obj, bool **edge) {
     }
 
     #define OPP_DIR(D) (obj->vec.D = -(obj->vec.D))
-    #define PAD_MAG (                           \
-            obj->vec.mag -= PADDING;            \
-            obj->vec.mag = abs(obj->vec.mag);   \
-        )
 
-    if(hit_vert) {
+    if(hit_vert)
         OPP_DIR(j);
-    }
-    if(hit_hori) {
+    if(hit_hori)
         OPP_DIR(i);
-    }
-
 }
 
-void collide_physics(List *objs, bool **edge_data, bool environment) {
+void collide_physics(List *objs, bool **map_data, bool environment) {
     Node *obj = objs->head;
 
     while(obj != NULL) {
         if(environment)
-            collide_environment(&obj->value, edge_data);
+            collide_environment(&obj->value, map_data);
+
         // collide_objs();
 
         obj = obj->next;
@@ -152,6 +149,7 @@ void list_dequeue(List *list) {
     free(tmp);
 }
 
+// TODO: bug where if you delete the most recently created object while there is still existing objects in the list, it wont create the new object.
 void list_delete(List *list, Node *target) {
     if(target == NULL)
         return;
