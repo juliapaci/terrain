@@ -39,7 +39,7 @@ bool **edge_filter(bool **map) {
                 continue;
             }
 
-            edge_map[x][y] = !map[x+1][y] || !map[x-1][y] || !map[x][y+1] || !map[x][y-1];
+            edge_map[x][y] = !map[x+1][y] || !map[x-1][y] || !map[x][y+1] || !map[x][y-1] || !map[x+1][y+1] || !map[x-1][y-1] || !map[x+1][y-1] || !map[x-1][y+1];
         }
     }
 
@@ -222,6 +222,10 @@ int main(void) {
     bool show_quadtree = false;
     bool pause = false;
 
+    #define MODES_AMOUNT 3
+    const char *modes[MODES_AMOUNT] = {"Object", "Draw", "Shadow"};
+    unsigned int mode = 0;
+
     const int button_width = 200;
     const int button_height = 20;
     const int slider_width = 200;
@@ -354,6 +358,10 @@ int main(void) {
             GuiSlider((Rectangle) {47, 370, slider_width, slider_height}, "interval", TextFormat("%.0f", interval), &interval, 1, 360);
             if(GuiButton((Rectangle) {sw-50, 10, 30, 30}, pause ? ">" : "| |") || IsKeyPressed(KEY_SPACE))
                 pause = !pause;
+
+            if(GuiButton((Rectangle) {sw/2., 10, button_width, button_height}, modes[mode]))
+                if(mode++ == MODES_AMOUNT-1)
+                    mode = 0;
 
             // debug stuff
             DrawText(TextFormat("FPS: %d", GetFPS()), sw-250, 10, 30, BLUE);
