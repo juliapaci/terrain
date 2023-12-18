@@ -387,6 +387,32 @@ int main(void) {
         if(IsKeyPressed(KEY_BACKSPACE) || IsKeyPressed(KEY_DELETE))
             list_dequeue(&objects);
 
+        if(mode == 1) {
+            int mx = GetMouseX();
+            int my = GetMouseY();
+            if(IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+                map_data[mx][my] = map_edge_data[mx][my] = 1;
+            if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
+                map_data[mx][my] = map_edge_data[mx][my] = 0;
+
+            // regen map
+            unsigned char map_gray[WIDTH*HEIGHT] = {0};
+            for(int x = 0; x < WIDTH; x++)
+                for(int y = 0; y < HEIGHT; y++)
+                    map_gray[y*WIDTH + x] = !map_data[x][y] * 200;
+            UnloadTexture(map);
+            map_img.data = map_gray;
+            map = LoadTextureFromImage(map_img);
+
+            // regen edge map
+            unsigned char edge_arr[WIDTH*HEIGHT];
+            for(int x = 0; x < WIDTH; x++)
+                for(int y = 0; y < HEIGHT; y++)
+                    edge_arr[y*WIDTH + x] = !map_edge_data[x][y] * 200;
+            edge_map_img.data = edge_arr;
+            edge_map = LoadTextureFromImage(edge_map_img);
+        }
+
         EndDrawing();
     }
 
