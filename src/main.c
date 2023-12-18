@@ -328,7 +328,7 @@ int main(void) {
         }
         EndMode2D();
 
-        if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        if(mode == 2 && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
             if(show_edge)
                 cast(GetMouseX(), GetMouseY(), light_size, interval, map_edge_data);
             else if(show_map)
@@ -370,17 +370,20 @@ int main(void) {
             DrawText(TextFormat("Obj radius: %d", radius), sw-250, 90, 30, BLUE);
         }
 
-        if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
-            radius += GetMouseWheelMove()*2;
-            if(radius < 5)
-                radius = 5;
-            else if(radius > 50)
-                radius = 50;
+        if(mode == 0) {
+            if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
+                radius += GetMouseWheelMove()*2;
+                if(radius < 5)
+                    radius = 5;
+                else if(radius > 50)
+                    radius = 50;
+            }
+
+            add_circle(&objects, radius);
+            select_objects(&objects);
         }
 
-        add_circle(&objects, radius);
         draw_objects(&objects, show_vec);
-        select_objects(&objects);
         if(IsKeyPressed(KEY_BACKSPACE) || IsKeyPressed(KEY_DELETE))
             list_dequeue(&objects);
 
