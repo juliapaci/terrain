@@ -12,9 +12,12 @@ void cast(int x, int y, int length, int interval, bool **map) {
         if(theta > PI/2. && theta < 3*PI/2.)
             cos_theta = PI - cos(theta);
 
+        bool see = true;
         for(int j = 0; j < length; j++) {
+
             int py = sqrt(2*j*j-2*j*j*cos_theta);
             // int px = sqrt((py*py)/(2-2*cos_theta));
+            // TODO: +/- px with trig(its only facing right rn);
             int px = j*cos_theta;
             // if(theta > PI/2. && theta < 3*PI/2.)
             //     px *= -1;
@@ -23,11 +26,10 @@ void cast(int x, int y, int length, int interval, bool **map) {
             px += x;
             py += y;
 
-            // TODO: +/- px with trig(its only facing right rn);
-            DrawLine(x, y, px, py, PURPLE);
-            if((px > 0 && px < WIDTH) && (py > 0 && py < HEIGHT) && map[px][py]) {
+            DrawRectangle(px, py, 1, 1, see ? PURPLE : GRAY);
+            if(see && (px > 0 && px < WIDTH) && (py > 0 && py < HEIGHT) && map[px][py]) {
                 DrawCircle(px, py, 6, PURPLE);
-                break;
+                see = false;
             }
         }
     }
