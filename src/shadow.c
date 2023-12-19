@@ -8,19 +8,16 @@
 void cast(int x, int y, int length, int interval, bool **map) {
     for(int i = 0; i < 360/interval; i++) {
         const float theta = i*interval*(PI/180.);
-        float cos_theta = cos(theta);
+        float cos_theta = cosf(theta);
         if(theta > PI/2. && theta < 3*PI/2.)
-            cos_theta = PI - cos(theta);
+            cos_theta = cosf(PI - theta);
 
         bool see = true;
         for(int j = 0; j < length; j++) {
-
             int py = sqrt(2*j*j-2*j*j*cos_theta);
-            // int px = sqrt((py*py)/(2-2*cos_theta));
-            // TODO: +/- px with trig(its only facing right rn);
             int px = j*cos_theta;
-            // if(theta > PI/2. && theta < 3*PI/2.)
-            //     px *= -1;
+            if(theta > PI/2. && theta < 3*PI/2.)
+                px *= -1;
             if(theta > PI && theta < 2*PI)
                 py *= -1;
             px += x;

@@ -355,7 +355,7 @@ int main(void) {
             GuiSlider((Rectangle) {65, 250, slider_width, slider_height}, "move speed", TextFormat("%.0f", move_scalar), &move_scalar, 5, 500);
             GuiSlider((Rectangle) {80, 290, slider_width, slider_height}, "octave amount", TextFormat("%.0f", octave_amount), &octave_amount, 1, 12);
             GuiSlider((Rectangle) {65, 330, slider_width, slider_height}, "light radius", TextFormat("%.0f", light_size), &light_size, 0, 1000);
-            GuiSlider((Rectangle) {47, 370, slider_width, slider_height}, "interval", TextFormat("%.0f", interval), &interval, 1, 360);
+            GuiSlider((Rectangle) {47, 370, slider_width, slider_height}, "interval", TextFormat("%.0f", interval), &interval, 1, 180);
             if(GuiButton((Rectangle) {sw-50, 10, 30, 30}, pause ? ">" : "| |") || IsKeyPressed(KEY_SPACE))
                 pause = !pause;
 
@@ -390,27 +390,32 @@ int main(void) {
         if(mode == 1) {
             int mx = GetMouseX();
             int my = GetMouseY();
-            if(IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+            bool left = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+            bool right = IsMouseButtonDown(MOUSE_BUTTON_RIGHT);
+
+            if(left)
                 map_data[mx][my] = map_edge_data[mx][my] = 1;
-            if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
+            if(right)
                 map_data[mx][my] = map_edge_data[mx][my] = 0;
 
-            // regen map
-            unsigned char map_gray[WIDTH*HEIGHT] = {0};
-            for(int x = 0; x < WIDTH; x++)
-                for(int y = 0; y < HEIGHT; y++)
-                    map_gray[y*WIDTH + x] = !map_data[x][y] * 200;
-            UnloadTexture(map);
-            map_img.data = map_gray;
-            map = LoadTextureFromImage(map_img);
+            if(right || left) {
+                // regen map
+                unsigned char map_gray[WIDTH*HEIGHT] = {0};
+                for(int x = 0; x < WIDTH; x++)
+                    for(int y = 0; y < HEIGHT; y++)
+                        map_gray[y*WIDTH + x] = !map_data[x][y] * 200;
+                UnloadTexture(map);
+                map_img.data = map_gray;
+                map = LoadTextureFromImage(map_img);
 
-            // regen edge map
-            unsigned char edge_arr[WIDTH*HEIGHT];
-            for(int x = 0; x < WIDTH; x++)
-                for(int y = 0; y < HEIGHT; y++)
-                    edge_arr[y*WIDTH + x] = !map_edge_data[x][y] * 200;
-            edge_map_img.data = edge_arr;
-            edge_map = LoadTextureFromImage(edge_map_img);
+                // regen edge map
+                unsigned char edge_arr[WIDTH*HEIGHT];
+                for(int x = 0; x < WIDTH; x++)
+                    for(int y = 0; y < HEIGHT; y++)
+                        edge_arr[y*WIDTH + x] = !map_edge_data[x][y] * 200;
+                edge_map_img.data = edge_arr;
+                edge_map = LoadTextureFromImage(edge_map_img);
+            }
         }
 
         EndDrawing();
