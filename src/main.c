@@ -126,7 +126,7 @@ int main(void) {
     unsigned char *perlin_data;
     if(pthread_create(&perlin_thread, NULL, get_perlin, &(get_perlin_args) {0, 0, 1}))
         return 1;
-    if(pthread_join(perlin_thread, &perlin_data))
+    if(pthread_join(perlin_thread, (void **)&perlin_data))
         return 1;
     if(perlin_data == NULL)
         return 1;
@@ -147,6 +147,7 @@ int main(void) {
         for(int y = 0; y < HEIGHT; y++)
             map_gray[y*WIDTH + x] = !map_data[x][y] * 200;
 
+    SetTraceLogLevel(LOG_ERROR);
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     SetConfigFlags(FLAG_VSYNC_HINT); // just for me
     InitWindow(0, 0, "Terrain");
@@ -270,7 +271,7 @@ int main(void) {
                         }
                     ))
                 return 1;
-            if(pthread_join(perlin_thread, &perlin_data))
+            if(pthread_join(perlin_thread, (void **)&perlin_data))
                     return 1;
             if(perlin_data == NULL)
                 return 1;
@@ -279,9 +280,9 @@ int main(void) {
             perlin_noise = LoadTextureFromImage(perlin_noise_img);
 
             // regen map
-            if(pthread_create(&perlin_thread, NULL, generate_map, perlin_data))
+            if(pthread_create(&perlin_thread, NULL, (void *)generate_map, perlin_data))
                 return 1;
-            if(pthread_join(perlin_thread, &map_data))
+            if(pthread_join(perlin_thread, (void **)&map_data))
                 return 1;
             if(map_data == NULL)
                 return 1;
@@ -294,9 +295,9 @@ int main(void) {
             map = LoadTextureFromImage(map_img);
 
             // regen edge map
-            if(pthread_create(&perlin_thread, NULL, edge_filter, map_data))
+            if(pthread_create(&perlin_thread, NULL, (void *)edge_filter, map_data))
                 return 1;
-            if(pthread_join(perlin_thread, &map_edge_data))
+            if(pthread_join(perlin_thread, (void **)&map_edge_data))
                 return 1;
             if(map_edge_data == NULL)
                 return 1;

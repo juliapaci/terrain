@@ -69,8 +69,8 @@ void apply_physics(List *objs) {
         if(val->vec.mag > TERM_VELO)
             val->vec.mag = TERM_VELO;
 
-        val->x += (val->vec.i*val->vec.mag)/256 * FRICTION * 1/val->mass;
-        val->y += (val->vec.j*val->vec.mag)/256 * FRICTION * 1/val->mass;
+        val->x += (val->vec.i*val->vec.mag)/256. * FRICTION * 1/val->mass;
+        val->y += (val->vec.j*val->vec.mag)/256. * FRICTION * 1/val->mass;
         obj = obj->next;
     }
 }
@@ -147,12 +147,11 @@ void list_dequeue(List *list) {
     free(tmp);
 }
 
-// TODO: bug where if you delete the most recently created object while there is still existing objects in the list, it wont create the new object.
 void list_delete(List *list, Node *target) {
     if(target == NULL)
         return;
-    if(list->head == target)
-        list->head = target->next;
+    if(list->tail == target)
+        list->tail = target->prev;
     if(target->prev != NULL)
         target->prev->next = target->next;
     if(target->next != NULL)
